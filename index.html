@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mood Tracker" />
+  <title>Mood Tracker — Kişisel Duygu Günlüğü (PWA)</title>
+  <link id="pwa-manifest-link" rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+  <!-- EKRANIN ÜSTÜNE BİTİŞİK SABİT ŞERİT -->
+  <!-- En solda "Anasayfa" butonu, en sağda "Grafikler" butonu. Hangi sekmede olunursa olunsun sabit kalır. -->
+  <header class="sticky top-0 z-40 w-full bg-slate-900 text-white shadow-md border-b border-slate-800">
+    <div class="w-full max-w-3xl mx-auto flex items-center justify-between px-3 py-2.5 sm:px-5">
+      <!-- En Sol: Anasayfa Butonu -->
+      <button
+        id="nav-home-btn"
+        type="button"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:scale-95"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        <span>Anasayfa</span>
+      </button>
+
+      <!-- Orta: Başlık & Kişiselleştirme / Veri Depolama Butonu -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs sm:text-sm font-bold tracking-tight text-slate-200 hidden xs:inline">Mood Tracker</span>
+        <button
+          id="open-settings-btn"
+          type="button"
+          title="Kişiselleştirme, Kategoriler ve Uygulama İçi Veri Depolama"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 transition-colors"
+        >
+          <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+          <span>Kişiselleştir & Veri</span>
+        </button>
+      </div>
+
+      <!-- En Sağ: Grafikler Sayfası Butonu -->
+      <button
+        id="nav-charts-btn"
+        type="button"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95"
+      >
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+        </svg>
+        <span>Grafikler</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ANA İÇERİK ALANI -->
+  <main class="flex-1 w-full max-w-3xl mx-auto px-3 sm:px-5 pb-12">
+
+    <!-- ========================================== -->
+    <!-- 1. ANASAYFA GÖRÜNÜMÜ                       -->
+    <!-- ========================================== -->
+    <section id="view-home" class="animate-fade-in">
+      <!-- Üst şeridin altında bitişik olmayacak şekilde "Yeni duygu gir" butonu -->
+      <div class="mt-6">
+        <button
+          id="go-new-entry-btn"
+          type="button"
+          class="w-full py-4 px-5 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-base shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-3 active:scale-[0.99]"
+        >
+          <span class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-lg font-bold">+</span>
+          <span>Yeni duygu gir</span>
+        </button>
+      </div>
+
+      <!-- "Yeni duygu gir" butonunun altında yine bitişik olmayacak şekilde Takvim görünümü -->
+      <div class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <button
+              id="cal-prev-month-btn"
+              type="button"
+              title="Önceki Ay"
+              class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h2 id="cal-month-year-label" class="text-base sm:text-lg font-bold text-slate-800 min-w-[150px] text-center">
+              Ekim 2026
+            </h2>
+            <button
+              id="cal-next-month-btn"
+              type="button"
+              title="Sonraki Ay"
+              class="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Herhangi bir tarihe/aya hızlı gidiş -->
+          <div class="flex items-center gap-2">
+            <input
+              id="cal-jump-date-input"
+              type="date"
+              aria-label="Takvimde güne git"
+              class="text-xs sm:text-sm border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              id="cal-today-btn"
+              type="button"
+              class="text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+            >
+              Bugün
+            </button>
+          </div>
+        </div>
+
+        <!-- Haftanın Günleri Başlığı -->
+        <div class="calendar-grid mb-2 text-center">
+          <div class="text-xs font-semibold text-slate-400 py-1">Pzt</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Sal</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Çar</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Per</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Cum</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Cmt</div>
+          <div class="text-xs font-semibold text-slate-400 py-1">Paz</div>
+        </div>
+
+        <!-- Takvim Günleri Hücreleri -->
+        <div id="calendar-days-grid" class="calendar-grid"></div>
+      </div>
+
+      <!-- TAKVİMİN ALTI: Takvim üzerinde herhangi bir güne tıklanmadığı sürece boştur! -->
+      <!-- Bir güne tıklanması halinde seçilen günün girdileri ilk girilenden son girilene doğru listelenir. -->
+      <div id="selected-day-entries-wrapper" class="mt-6"></div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2. YENİ DUYGU GİR & DUYGU SAYFASI GÖRÜNÜMÜ -->
+    <!-- (Her iki sayfa aynı sayfa düzenine sahiptir)-->
+    <!-- ========================================== -->
+    <section id="view-entry-form" class="hidden animate-fade-in mt-6">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <!-- Sayfa Üst Bilgi Başlığı -->
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span id="entry-page-badge" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700">
+              Yeni Duygu Gir
+            </span>
+            <span id="entry-status-hint" class="text-xs text-slate-500"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="delete-entry-btn"
+              type="button"
+              class="hidden text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+            >
+              Girdiyi Sil
+            </button>
+            <button
+              id="cancel-entry-btn"
+              type="button"
+              class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+            >
+              Kapat
+            </button>
+          </div>
+        </div>
+
+        <!-- ÜST BÖLÜM: Sol üstte Simge boşluğu, Sağında ekranın sonuna kadar Hissedilen Duygu ve altında Tarih -->
+        <div class="flex items-stretch gap-3 sm:gap-4">
+          <!-- Sol Üst: Simge Boşluğu (Emoji ya da Galeriden Fotoğraf) -->
+          <div class="shrink-0">
+            <button
+              id="icon-slot-btn"
+              type="button"
+              title="Emoji seçmek veya galeriden fotoğraf eklemek için tıklayın"
+              class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 hover:border-indigo-500 transition-all flex flex-col items-center justify-center overflow-hidden relative group"
+            >
+              <div id="icon-slot-preview" class="w-full h-full flex items-center justify-center text-4xl sm:text-5xl select-none">
+                😊
+              </div>
+              <span class="absolute bottom-1 inset-x-1 bg-slate-900/75 text-white text-[10px] font-medium py-0.5 px-1 rounded text-center opacity-90 group-hover:opacity-100">
+                Simge / Foto
+              </span>
+            </button>
+          </div>
+
+          <!-- Simge boşluğunun sağında ekranın sonuna kadar uzanan alan -->
+          <div class="flex-1 flex flex-col justify-between min-w-0 gap-2.5">
+            <!-- Üst: Hissedilen duyguyu girmek için ekranın sonuna kadar boşluk -->
+            <div class="w-full">
+              <label for="entry-emotion-input" class="block text-xs font-semibold text-slate-600 mb-1">
+                Hissedilen Duygu
+              </label>
+              <input
+                id="entry-emotion-input"
+                type="text"
+                maxlength="120"
+                placeholder="Şu an ne hissediyorsun? (Örn: Umutlu, kırgın, enerjik...)"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm sm:text-base font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Alt (yine simge boşluğunun yanında kalacak şekilde): Salt-okunur Tarih (gün/ay/yıl - saat) -->
+            <div class="w-full">
+              <div class="flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 select-none">
+                <div class="flex items-center gap-2 min-w-0">
+                  <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="text-xs font-medium text-slate-500">Tarih:</span>
+                  <span id="entry-datetime-display" class="text-xs sm:text-sm font-bold text-slate-800 tracking-wide truncate">
+                    18/10/2026 - 00:57
+                  </span>
+                </div>
+                <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-200 text-slate-600 shrink-0">
+                  Sabit
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simge Seçici Açılır Panel (Emoji veya Galeri Fotoğrafı) -->
+        <div id="icon-picker-panel" class="hidden mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <span class="text-xs font-bold text-slate-700 uppercase tracking-wider">Simge Boşluğu: Emoji veya Galeri Fotoğrafı</span>
+            <button
+              id="close-icon-picker-btn"
+              type="button"
+              class="text-xs font-semibold text-slate-500 hover:text-slate-800"
+            >
+              Kapat ✕
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <!-- Galeriden Fotoğraf Yükle -->
+            <label
+              for="gallery-photo-input"
+              class="cursor-pointer flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-indigo-200 hover:border-indigo-400 text-indigo-700 text-xs sm:text-sm font-semibold shadow-sm transition-colors"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Galeriden Fotoğraf Seç</span>
+              <input id="gallery-photo-input" type="file" accept="image/*" class="hidden" />
+            </label>
+
+            <!-- Özel Emoji Yaz -->
+            <div class="flex items-center gap-2">
+              <input
+                id="custom-emoji-input"
+                type="text"
+                maxlength="4"
+                placeholder="Klavyeden emoji girin..."
+                class="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                id="apply-custom-emoji-btn"
+                type="button"
+                class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500"
+              >
+                Uygula
+              </button>
+            </div>
+          </div>
+
+          <!-- Hızlı Emoji Seçim Izgarası -->
+          <div id="emoji-grid" class="grid grid-cols-8 sm:grid-cols-12 gap-1.5 max-h-40 overflow-y-auto custom-scrollbar p-1"></div>
+        </div>
+
+        <!-- ORTA BÖLÜM: Bu ikisinin altında Kategori Seçme Kutucuğu -->
+        <div class="mt-5">
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="entry-category-select" class="block text-xs font-semibold text-slate-600">
+              Duygu Kategorisi <span class="text-slate-400 font-normal">(Grafik Y ekseni için kullanılır)</span>
+            </label>
+            <button
+              id="quick-manage-categories-btn"
+              type="button"
+              class="text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+            >
+              + Kategorileri Düzenle
+            </button>
+          </div>
+          <select
+            id="entry-category-select"
+            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white text-sm sm:text-base font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          ></select>
+        </div>
+
+        <!-- ALT METİN BÖLÜMÜ: Kategori seçme kutucuğunun altında ekranın sonuna kadar dikdörtgen metin boşluğu (Açıklama) -->
+        <div class="mt-5">
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="entry-description-textarea" class="block text-xs font-semibold text-slate-600">
+              Açıklama / İç Dökümü
+            </label>
+            <span id="description-char-count" class="text-[11px] text-slate-400">0 karakter</span>
+          </div>
+          <textarea
+            id="entry-description-textarea"
+            rows="6"
+            placeholder="Aklından geçenleri, bu duyguyu tetikleyen olayı veya kendine notunu özgürce yaz..."
+            class="w-full p-3.5 rounded-xl border border-slate-300 text-sm sm:text-base text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-y"
+          ></textarea>
+        </div>
+
+        <!-- EKRANIN SONUNDA "KAYDET" BUTONU -->
+        <!-- Yeni duygu gir sayfasında aktif; Duygu sayfasında değişiklik yapılmadığı sürece soluk ve pasif! -->
+        <div class="mt-6">
+          <button
+            id="save-entry-btn"
+            type="button"
+            class="w-full py-3.5 px-6 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <span>Kaydet</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. GRAFİKLER SAYFASI GÖRÜNÜMÜ              -->
+    <!-- ========================================== -->
+    <section id="view-charts" class="hidden animate-fade-in mt-6 space-y-5">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-900">Duygu Değişim Grafiği (1. Bölge X-Y)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">
+              X Ekseni: Tarih / Saat &bull; Y Ekseni: Duygu Kategorisi (Çizgi Grafiği)
+            </p>
+          </div>
+
+          <!-- Günlük, Haftalık, Aylık ve Özel Aralık Sekmeleri -->
+          <div class="inline-flex rounded-xl bg-slate-100 p-1 self-start sm:self-auto">
+            <button
+              id="chart-mode-daily"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-white text-indigo-600 shadow-sm"
+            >
+              Günlük
+            </button>
+            <button
+              id="chart-mode-weekly"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600 hover:text-slate-900"
+            >
+              Haftalık
+            </button>
+            <button
+              id="chart-mode-monthly"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600 hover:text-slate-900"
+            >
+              Aylık
+            </button>
+            <button
+              id="chart-mode-custom"
+              type="button"
+              class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600 hover:text-slate-900"
+            >
+              Tarih Aralığı
+            </button>
+          </div>
+        </div>
+
+        <!-- Seçilen Tarih Aralığı Kontrolleri -->
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+          <!-- Standart Gezinme (Günlük / Haftalık / Aylık için) -->
+          <div id="chart-standard-nav" class="flex items-center gap-2">
+            <button
+              id="chart-prev-period-btn"
+              type="button"
+              class="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span id="chart-period-label" class="text-xs sm:text-sm font-bold text-slate-800 min-w-[170px] text-center">
+              18/10/2026 (Günlük)
+            </span>
+            <button
+              id="chart-next-period-btn"
+              type="button"
+              class="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Özel Tarih Aralığı Seçici -->
+          <div id="chart-custom-range-inputs" class="hidden flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1.5">
+              <label for="chart-start-date" class="text-xs font-medium text-slate-600">Başlangıç:</label>
+              <input
+                id="chart-start-date"
+                type="date"
+                class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-800"
+              />
+            </div>
+            <div class="flex items-center gap-1.5">
+              <label for="chart-end-date" class="text-xs font-medium text-slate-600">Bitiş:</label>
+              <input
+                id="chart-end-date"
+                type="date"
+                class="text-xs border border-slate-300 rounded-lg px-2.5 py-1.5 bg-white text-slate-800"
+              />
+            </div>
+          </div>
+
+          <div class="text-xs text-slate-500 font-medium">
+            Toplam <span id="chart-point-count" class="font-bold text-indigo-600">0</span> duygu kaydı
+          </div>
+        </div>
+
+        <!-- 1. BÖLGE X-Y ÇİZGİ GRAFİĞİ ALANI -->
+        <div class="mt-5 relative h-80 sm:h-96 w-full bg-white rounded-xl p-2 border border-slate-100">
+          <canvas id="mood-line-chart"></canvas>
+          <div
+            id="chart-empty-state"
+            class="hidden absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-xl p-6 text-center"
+          >
+            <div class="text-3xl mb-2">📈</div>
+            <p class="text-sm font-semibold text-slate-700">Seçilen tarih aralığında duygu kaydı bulunmuyor.</p>
+            <p class="text-xs text-slate-500 mt-1">
+              Tarih aralığını değiştirebilir veya Anasayfa üzerinden yeni bir duygu girebilirsiniz.
+            </p>
+          </div>
+        </div>
+
+        <p class="mt-3 text-[11px] text-slate-500 flex items-center justify-between flex-wrap gap-2">
+          <span>💡 Grafik üzerindeki noktalara tıklayarak ilgili duygu sayfasına doğrudan gidebilirsiniz.</span>
+          <span class="font-medium text-slate-600">1. Bölge Koordinat Sistemi (X: Tarih/Saat, Y: Duygu Kategorisi)</span>
+        </p>
+      </div>
+
+      <!-- Grafikteki Noktaların Kronolojik Listesi -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6">
+        <h3 class="text-sm font-bold text-slate-800 mb-3">
+          Seçilen Aralıktaki Duygu Akışı (İlk Girilenden Son Girilene)
+        </h3>
+        <div id="chart-entries-list" class="space-y-2.5"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- KİŞİSELLEŞTİRME, KATEGORİ & VERİ MODALI    -->
+  <!-- ========================================== -->
+  <div
+    id="settings-modal"
+    class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5"
+  >
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-900 text-white">
+        <div>
+          <h3 class="text-base font-bold">Kişiselleştirme, Kategoriler & Uygulama İçi Depolama</h3>
+          <p class="text-xs text-slate-300 mt-0.5">
+            Tüm verileriniz %100 cihazınızda (LocalStorage JSON formatında) saklanır.
+          </p>
+        </div>
+        <button
+          id="close-settings-modal-btn"
+          type="button"
+          class="p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto custom-scrollbar space-y-6">
+        <!-- Duygu Kategorilerini Özelleştirme (Y Ekseni Sıralaması) -->
+        <div>
+          <h4 class="text-sm font-bold text-slate-800 mb-1">
+            Duygu Kategorileri (Grafik Y Ekseni Sıralaması: 1'den N'e)
+          </h4>
+          <p class="text-xs text-slate-500 mb-3">
+            Grafiklerde Y ekseninde yer alacak duygu kategorilerini kişiselleştirebilir veya yeni kategori ekleyebilirsiniz.
+          </p>
+          <div id="settings-categories-list" class="space-y-2 mb-3"></div>
+
+          <!-- Yeni Kategori Ekle -->
+          <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <input
+              id="new-cat-emoji"
+              type="text"
+              maxlength="4"
+              placeholder="Emoji"
+              value="✨"
+              class="w-16 px-2.5 py-1.5 rounded-lg border border-slate-300 text-sm text-center bg-white"
+            />
+            <input
+              id="new-cat-name"
+              type="text"
+              maxlength="40"
+              placeholder="Yeni kategori adı (Örn: İlham Dolu)"
+              class="flex-1 min-w-[160px] px-3 py-1.5 rounded-lg border border-slate-300 text-sm bg-white"
+            />
+            <input
+              id="new-cat-color"
+              type="color"
+              value="#6366f1"
+              class="w-10 h-8 rounded cursor-pointer border border-slate-300 bg-white p-0.5"
+            />
+            <button
+              id="add-category-btn"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+            >
+              + Kategori Ekle
+            </button>
+          </div>
+        </div>
+
+        <!-- Uygulama İçi Veri Depolama Formatı (JSON) & Yedekleme -->
+        <div class="border-t border-slate-200 pt-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div>
+              <h4 class="text-sm font-bold text-slate-800">Uygulama İçi Depolama Formatı (JSON)</h4>
+              <p class="text-xs text-slate-500">
+                Verileriniz üçüncü parti sunuculara gönderilmez; belirli bir JSON şemasıyla uygulama içinde depolanır.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                id="export-json-btn"
+                type="button"
+                class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+              >
+                JSON İndir
+              </button>
+              <label
+                for="import-json-input"
+                class="cursor-pointer px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold"
+              >
+                JSON Yükle
+                <input id="import-json-input" type="file" accept=".json,application/json" class="hidden" />
+              </label>
+            </div>
+          </div>
+
+          <textarea
+            id="storage-json-preview"
+            rows="6"
+            readonly
+            class="w-full p-3 rounded-xl bg-slate-900 text-emerald-300 font-mono text-xs border border-slate-700 custom-scrollbar"
+          ></textarea>
+
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <button
+              id="load-sample-data-btn"
+              type="button"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+            >
+              Örnek Duygu Kayıtlarını Yükle
+            </button>
+            <button
+              id="clear-all-data-btn"
+              type="button"
+              class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100"
+            >
+              Tüm Kayıtları Sıfırla
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SİLME ONAY MODALI (alert/confirm yerine uygulama içi modal) -->
+  <div
+    id="confirm-modal"
+    class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+  >
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-5 animate-fade-in">
+      <h4 id="confirm-modal-title" class="text-base font-bold text-slate-900">Onay</h4>
+      <p id="confirm-modal-message" class="text-xs sm:text-sm text-slate-600 mt-1.5"></p>
+      <div class="mt-5 flex items-center justify-end gap-2">
+        <button
+          id="confirm-cancel-btn"
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+        >
+          Vazgeç
+        </button>
+        <button
+          id="confirm-accept-btn"
+          type="button"
+          class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold"
+        >
+          Onayla
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BİLDİRİM TOAST -->
+  <div
+    id="toast-container"
+    class="fixed bottom-4 right-4 z-50 pointer-events-none flex flex-col gap-2"
+  ></div>
+
+  <script>
+    // ============================================================================
+    // UYGULAMA İÇİ VERİ DEPOLAMA ŞEMASI VE VARSAYILAN DEĞERLER
+    // ============================================================================
+    const STORAGE_KEY = 'MOOD_TRACKER_PWA_DATA_V1';
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'cat_1', level: 1, name: 'Çökkün / Üzgün', color: '#64748b', emoji: '😔' },
+      { id: 'cat_2', level: 2, name: 'Kaygılı / Stresli', color: '#ef4444', emoji: '😰' },
+      { id: 'cat_3', level: 3, name: 'Kızgın / Gergin', color: '#f97316', emoji: '😤' },
+      { id: 'cat_4', level: 4, name: 'Yorgun / Bıkkın', color: '#eab308', emoji: '😮‍💨' },
+      { id: 'cat_5', level: 5, name: 'Nötr / Sakin', color: '#3b82f6', emoji: '😐' },
+      { id: 'cat_6', level: 6, name: 'Huzurlu / Dengeli', color: '#10b981', emoji: '😌' },
+      { id: 'cat_7', level: 7, name: 'Mutlu / Keyifli', color: '#8b5cf6', emoji: '😊' },
+      { id: 'cat_8', level: 8, name: 'Heyecanlı / Enerjik', color: '#ec4899', emoji: '🤩' }
+    ];
+
+    const EMOJI_PALETTE = [
+      '😊', '🤩', '😌', '😐', '😮‍💨', '😔', '😰', '😤', '🥳', '🥰', '🤔', '😴',
+      '😭', '🤯', '😎', '🤗', '😇', '😬', '🥺', '🫠', '🤠', '🙃', '😶‍🌫️', '🫡',
+      '❤️', '💔', '🔥', '✨', '🌧️', '☀️', '🌈', '⚡', '☕', '🎵', '📚', '🏃'
+    ];
+
+    const TURKISH_MONTHS = [
+      'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+      'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+    ];
+
+    // Aynı gün ve hatta aynı saat içinde birden fazla duygu değişimini gösteren örnek kayıtlar
+    function createInitialSampleEntries() {
+      return [
+        {
+          id: 'entry_1001',
+          iconType: 'emoji',
+          iconValue: '☕',
+          emotion: 'Sabah kahvesiyle dingin başlangıç',
+          dateStr: '15/10/2026',
+          timeStr: '09:15',
+          formattedDateTime: '15/10/2026 - 09:15',
+          isoDate: '2026-10-15',
+          timestamp: new Date(2026, 9, 15, 9, 15, 10).getTime(),
+          categoryId: 'cat_6',
+          description: 'Güne erken başladım. Kimseyle paylaşma kaygısı olmadan sadece kendim için not düşmek çok iyi geliyor.'
+        },
+        {
+          id: 'entry_1002',
+          iconType: 'emoji',
+          iconValue: '😰',
+          emotion: 'Yetişmesi gereken işler yüzünden stresli',
+          dateStr: '16/10/2026',
+          timeStr: '14:20',
+          formattedDateTime: '16/10/2026 - 14:20',
+          isoDate: '2026-10-16',
+          timestamp: new Date(2026, 9, 16, 14, 20, 0).getTime(),
+          categoryId: 'cat_2',
+          description: 'Üst üste gelen mesajlar bir anda gerilmeme sebep oldu. Derin bir nefes alıp sırayla ilerlemem lazım.'
+        },
+        {
+          id: 'entry_1003',
+          iconType: 'emoji',
+          iconValue: '😌',
+          emotion: 'Akşam yürüyüşü sonrası ferahlamış',
+          dateStr: '16/10/2026',
+          timeStr: '20:40',
+          formattedDateTime: '16/10/2026 - 20:40',
+          isoDate: '2026-10-16',
+          timestamp: new Date(2026, 9, 16, 20, 40, 0).getTime(),
+          categoryId: 'cat_6',
+          description: 'Açık havada 30 dakika yürümek öğleden sonraki bütün gerginliği aldı.'
+        },
+        {
+          id: 'entry_1004',
+          iconType: 'emoji',
+          iconValue: '😮‍💨',
+          emotion: 'Yoğun темpodan biraz yorgun',
+          dateStr: '17/10/2026',
+          timeStr: '11:10',
+          formattedDateTime: '17/10/2026 - 11:10',
+          isoDate: '2026-10-17',
+          timestamp: new Date(2026, 9, 17, 11, 10, 0).getTime(),
+          categoryId: 'cat_4',
+          description: 'Uyku düzenimi biraz daha erkene çekmem gerekiyor, sabah odaklanmakta zorlandım.'
+        },
+        {
+          id: 'entry_1005',
+          iconType: 'emoji',
+          iconValue: '😤',
+          emotion: 'Planların son dakikada değişmesine sinirli',
+          dateStr: '17/10/2026',
+          timeStr: '16:05',
+          formattedDateTime: '17/10/2026 - 16:05',
+          isoDate: '2026-10-17',
+          timestamp: new Date(2026, 9, 17, 16, 5, 0).getTime(),
+          categoryId: 'cat_3',
+          description: 'Bütün programı ona göre ayarlamışken iptal edilmesi canımı sıktı.'
+        },
+        {
+          id: 'entry_1006',
+          iconType: 'emoji',
+          iconValue: '😊',
+          emotion: 'Kendime vakit ayırınca keyfim yerine geldi',
+          dateStr: '17/10/2026',
+          timeStr: '16:48',
+          formattedDateTime: '17/10/2026 - 16:48',
+          isoDate: '2026-10-17',
+          timestamp: new Date(2026, 9, 17, 16, 48, 0).getTime(),
+          categoryId: 'cat_7',
+          description: 'Aynı saat içinde bile insanın modunun nasıl değişebildiğini görmek çok ilginç. İptal olan plan sayesinde sevdiğim kitaba başladım!'
+        },
+        {
+          id: 'entry_1007',
+          iconType: 'emoji',
+          iconValue: '😔',
+          emotion: 'Gece yarısı hafif melankolik ve düşünceli',
+          dateStr: '18/10/2026',
+          timeStr: '00:12',
+          formattedDateTime: '18/10/2026 - 00:12',
+          isoDate: '2026-10-18',
+          timestamp: new Date(2026, 9, 18, 0, 12, 0).getTime(),
+          categoryId: 'cat_1',
+          description: 'Eski günler aklıma geldi, eskiden olsa hemen twit atardım ama burada sadece kendime saklamak çok daha samimi.'
+        },
+        {
+          id: 'entry_1008',
+          iconType: 'emoji',
+          iconValue: '🤩',
+          emotion: 'Yeni uygulama fikriyle heyecanlı ve üretken',
+          dateStr: '18/10/2026',
+          timeStr: '00:45',
+          formattedDateTime: '18/10/2026 - 00:45',
+          isoDate: '2026-10-18',
+          timestamp: new Date(2026, 9, 18, 0, 45, 0).getTime(),
+          categoryId: 'cat_8',
+          description: 'Aynı saat içerisinde hüzünden heyecana geçiş! Yaşadığım duyguları somutlaştırmak gerçekten zihnimi berraklaştırıyor.'
+        }
+      ];
+    }
+
+    // Uygulama Durumu (State)
+    let appData = {
+      version: '1.0',
+      app: 'MoodTrackerPWA',
+      updatedAt: new Date().toISOString(),
+      categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+      entries: []
+    };
+
+    let currentView = 'home'; // 'home' | 'new' | 'detail' | 'charts'
+    let calendarMonth = 9; // 0-indexed (9 = Ekim)
+    let calendarYear = 2026;
+    // "Takvimin altı takvim üzerinde herhangi bir güne tıklanmadığı sürece boştur."
+    let selectedCalendarIsoDate = null;
+
+    // Yeni Duygu Gir / Duygu Sayfası Form Durumu
+    let formMode = 'new'; // 'new' | 'detail'
+    let activeEntryId = null;
+    let originalEntrySnapshot = null; // Duygu sayfasında değişiklik kontrolü için
+    let currentFormState = {
+      iconType: 'emoji',
+      iconValue: '😊',
+      emotion: '',
+      dateStr: '',
+      timeStr: '',
+      formattedDateTime: '',
+      isoDate: '',
+      timestamp: 0,
+      categoryId: 'cat_7',
+      description: ''
+    };
+
+    // Grafikler Sayfası Durumu
+    let chartMode = 'daily'; // 'daily' | 'weekly' | 'monthly' | 'custom'
+    let chartAnchorDate = new Date(2026, 9, 18);
+    let chartCustomStartIso = '2026-10-15';
+    let chartCustomEndIso = '2026-10-18';
+    let moodChartInstance = null;
+
+    // Onay Modalı Callback
+    let pendingConfirmAction = null;
+
+    // ============================================================================
+    // YARDIMCI TARİH / SAAT FONKSİYONLARI
+    // ============================================================================
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function formatToTurkishDate(dateObj) {
+      return `${pad2(dateObj.getDate())}/${pad2(dateObj.getMonth() + 1)}/${dateObj.getFullYear()}`;
+    }
+
+    function formatToTurkishTime(dateObj) {
+      return `${pad2(dateObj.getHours())}:${pad2(dateObj.getMinutes())}`;
+    }
+
+    function formatToIsoDate(dateObj) {
+      return `${dateObj.getFullYear()}-${pad2(dateObj.getMonth() + 1)}-${pad2(dateObj.getDate())}`;
+    }
+
+    function isoToTurkishDate(isoStr) {
+      if (!isoStr || !isoStr.includes('-')) return '';
+      const [y, m, d] = isoStr.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    // ============================================================================
+    // VERİ DEPOLAMA (LOCALSTORAGE + BELLEK YEDEĞİ)
+    // ============================================================================
+    function loadAppData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.entries)) {
+            appData = parsed;
+            return;
+          }
+        }
+      } catch (err) {
+        // Canvas sandboxed iframe localStorage kısıtlaması durumunda bellekte devam et
+      }
+      appData.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+      appData.entries = createInitialSampleEntries();
+      saveAppData();
+    }
+
+    function saveAppData() {
+      appData.updatedAt = new Date().toISOString();
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      } catch (err) {
+        // Sandbox ortamında sessizce devam et
+      }
+      updateStorageJsonPreview();
+    }
+
+    function updateStorageJsonPreview() {
+      const previewEl = document.getElementById('storage-json-preview');
+      if (!previewEl) return;
+      // Görsel okunabilirlik için foto base64 verisini kısaltarak önizlemede göster
+      const cleanCopy = {
+        ...appData,
+        entries: appData.entries.map(e => ({
+          ...e,
+          iconValue: e.iconType === 'image' && e.iconValue.length > 60
+            ? e.iconValue.slice(0, 50) + '...[Galeri Fotoğrafı Base64]'
+            : e.iconValue
+        }))
+      };
+      previewEl.value = JSON.stringify(cleanCopy, null, 2);
+    }
+
+    function getCategoryById(catId) {
+      return appData.categories.find(c => c.id === catId) || appData.categories[0] || {
+        id: 'cat_default',
+        level: 1,
+        name: 'Genel',
+        color: '#6366f1',
+        emoji: '😊'
+      };
+    }
+
+    // ============================================================================
+    // BİLDİRİM (TOAST) & ONAY MODALI
+    // ============================================================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const bgClass = type === 'error'
+        ? 'bg-rose-600 text-white'
+        : type === 'info'
+          ? 'bg-slate-800 text-white'
+          : 'bg-emerald-600 text-white';
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl shadow-lg text-xs sm:text-sm font-semibold flex items-center gap-2 animate-fade-in ${bgClass}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 2800);
+    }
+
+    function openConfirmModal(title, message, onAccept) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-message').textContent = message;
+      pendingConfirmAction = onAccept;
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      pendingConfirmAction = null;
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    // ============================================================================
+    // NAVİGASYON VE SEKME YÖNETİMİ
+    // ============================================================================
+    function switchView(targetView) {
+      currentView = targetView;
+
+      const viewHome = document.getElementById('view-home');
+      const viewForm = document.getElementById('view-entry-form');
+      const viewCharts = document.getElementById('view-charts');
+
+      viewHome.classList.add('hidden');
+      viewForm.classList.add('hidden');
+      viewCharts.classList.add('hidden');
+
+      const navHomeBtn = document.getElementById('nav-home-btn');
+      const navChartsBtn = document.getElementById('nav-charts-btn');
+
+      // Üst şerit aktiflik stilleri
+      if (targetView === 'home') {
+        viewHome.classList.remove('hidden');
+        navHomeBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:scale-95';
+        navChartsBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95';
+        renderCalendar();
+        renderSelectedDayEntries();
+      } else if (targetView === 'new' || targetView === 'detail') {
+        viewForm.classList.remove('hidden');
+        navHomeBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95';
+        navChartsBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95';
+      } else if (targetView === 'charts') {
+        viewCharts.classList.remove('hidden');
+        navHomeBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95';
+        navChartsBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 bg-indigo-600 text-white shadow-sm hover:bg-indigo-500 active:scale-95';
+        renderChartsView();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ============================================================================
+    // ANASAYFA: TAKVİM VE SEÇİLEN GÜNÜN GİRDİLERİ LİSTESİ
+    // ============================================================================
+    function renderCalendar() {
+      const labelEl = document.getElementById('cal-month-year-label');
+      labelEl.textContent = `${TURKISH_MONTHS[calendarMonth]} ${calendarYear}`;
+
+      const gridEl = document.getElementById('calendar-days-grid');
+      gridEl.innerHTML = '';
+
+      const firstDayOfMonth = new Date(calendarYear, calendarMonth, 1);
+      // Pazartesi = 0 ... Pazar = 6
+      const startDayOffset = (firstDayOfMonth.getDay() + 6) % 7;
+      const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+
+      // Gün bazlı girdi sayılarını hesapla
+      const entriesByDate = {};
+      appData.entries.forEach(entry => {
+        if (!entriesByDate[entry.isoDate]) entriesByDate[entry.isoDate] = [];
+        entriesByDate[entry.isoDate].push(entry);
+      });
+
+      // Boş hücreler
+      for (let i = 0; i < startDayOffset; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'h-12 sm:h-14 rounded-xl bg-slate-50/60 border border-transparent';
+        gridEl.appendChild(emptyCell);
+      }
+
+      const todayIso = formatToIsoDate(new Date());
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const isoDate = `${calendarYear}-${pad2(calendarMonth + 1)}-${pad2(day)}`;
+        const dayEntries = entriesByDate[isoDate] || [];
+        const isSelected = selectedCalendarIsoDate === isoDate;
+        const isToday = todayIso === isoDate;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        let baseClasses = 'h-12 sm:h-14 rounded-xl p-1 flex flex-col items-center justify-between transition-all border text-xs sm:text-sm font-semibold relative ';
+        if (isSelected) {
+          baseClasses += 'bg-indigo-600 text-white border-indigo-600 shadow-md scale-[1.02]';
+        } else if (dayEntries.length > 0) {
+          baseClasses += 'bg-indigo-50/70 text-slate-800 border-indigo-200 hover:bg-indigo-100/80';
+        } else if (isToday) {
+          baseClasses += 'bg-white text-indigo-600 border-indigo-400 hover:bg-slate-50';
+        } else {
+          baseClasses += 'bg-white text-slate-700 border-slate-200/80 hover:bg-slate-100';
+        }
+        btn.className = baseClasses;
+
+        const dayNumSpan = document.createElement('span');
+        dayNumSpan.textContent = day;
+        btn.appendChild(dayNumSpan);
+
+        // Eğer o günde duygu girdisi varsa küçük simge/nokta göstergesi
+        if (dayEntries.length > 0) {
+          const sorted = [...dayEntries].sort((a, b) => a.timestamp - b.timestamp);
+          const lastEntry = sorted[sorted.length - 1];
+          const indicatorDiv = document.createElement('div');
+          indicatorDiv.className = 'flex items-center gap-0.5 text-[10px] leading-none';
+
+          if (lastEntry.iconType === 'emoji') {
+            indicatorDiv.textContent = dayEntries.length > 1
+              ? `${lastEntry.iconValue}+${dayEntries.length - 1}`
+              : lastEntry.iconValue;
+          } else {
+            const dot = document.createElement('span');
+            dot.className = `w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'}`;
+            indicatorDiv.appendChild(dot);
+            if (dayEntries.length > 1) {
+              const cnt = document.createElement('span');
+              cnt.textContent = `×${dayEntries.length}`;
+              indicatorDiv.appendChild(cnt);
+            }
+          }
+          btn.appendChild(indicatorDiv);
+        }
+
+        btn.addEventListener('click', () => {
+          // Takvimde bir güne tıklanması halinde o günün girdileri aşağıda listelenir
+          selectedCalendarIsoDate = isoDate;
+          document.getElementById('cal-jump-date-input').value = isoDate;
+          renderCalendar();
+          renderSelectedDayEntries();
+        });
+
+        gridEl.appendChild(btn);
+      }
+    }
+
+    function renderSelectedDayEntries() {
+      const wrapper = document.getElementById('selected-day-entries-wrapper');
+      wrapper.innerHTML = '';
+
+      // KURAL: "Takvimin altı takvim üzerinde herhangi bir güne tıklanmadığı sürece boştur."
+      if (!selectedCalendarIsoDate) {
+        return;
+      }
+
+      // Seçilen günün girdilerini ilk girilenden son girilene doğru (kronolojik artan) sırala
+      const dayEntries = appData.entries
+        .filter(e => e.isoDate === selectedCalendarIsoDate)
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      const container = document.createElement('div');
+      container.className = 'bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 animate-fade-in';
+
+      const header = document.createElement('div');
+      header.className = 'flex items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100';
+
+      const titleDiv = document.createElement('div');
+      titleDiv.innerHTML = `
+        <h3 class="text-sm sm:text-base font-bold text-slate-900">
+          ${isoToTurkishDate(selectedCalendarIsoDate)} Günü Duygu Girdileri
+        </h3>
+        <p class="text-xs text-slate-500 mt-0.5">
+          İlk girilenden son girilene doğru sıralanmıştır (${dayEntries.length} kayıt). Detay ve düzenleme için girdiye tıklayın.
+        </p>
+      `;
+
+      const closeDayBtn = document.createElement('button');
+      closeDayBtn.type = 'button';
+      closeDayBtn.className = 'text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 shrink-0';
+      closeDayBtn.textContent = 'Seçimi Kaldır';
+      closeDayBtn.addEventListener('click', () => {
+        selectedCalendarIsoDate = null;
+        renderCalendar();
+        renderSelectedDayEntries();
+      });
+
+      header.appendChild(titleDiv);
+      header.appendChild(closeDayBtn);
+      container.appendChild(header);
+
+      if (dayEntries.length === 0) {
+        const emptyBox = document.createElement('div');
+        emptyBox.className = 'py-8 text-center text-slate-500 text-sm';
+        emptyBox.textContent = 'Bu tarihte kaydedilmiş bir duygu girdisi bulunmuyor.';
+        container.appendChild(emptyBox);
+      } else {
+        const listEl = document.createElement('div');
+        listEl.className = 'space-y-3';
+
+        dayEntries.forEach((entry, idx) => {
+          listEl.appendChild(createEntryListItemCard(entry, idx + 1));
+        });
+
+        container.appendChild(listEl);
+      }
+
+      wrapper.appendChild(container);
+    }
+
+    function createEntryListItemCard(entry, orderNumber) {
+      const cat = getCategoryById(entry.categoryId);
+      const itemBtn = document.createElement('button');
+      itemBtn.type = 'button';
+      itemBtn.className = 'w-full text-left p-3.5 sm:p-4 rounded-xl border border-slate-200 hover:border-indigo-400 bg-slate-50/70 hover:bg-indigo-50/30 transition-all flex items-start gap-3.5 group shadow-2xs';
+
+      // Sol: Simge
+      const iconBox = document.createElement('div');
+      iconBox.className = 'w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden text-2xl sm:text-3xl shadow-2xs';
+      if (entry.iconType === 'image' && entry.iconValue) {
+        const img = document.createElement('img');
+        img.src = entry.iconValue;
+        img.alt = entry.emotion;
+        img.className = 'w-full h-full object-cover';
+        iconBox.appendChild(img);
+      } else {
+        iconBox.textContent = entry.iconValue || '😊';
+      }
+
+      // Orta & Sağ: Simge - Duygu - Saat - Tarih ve Açıklama
+      const contentBox = document.createElement('div');
+      contentBox.className = 'flex-1 min-w-0';
+
+      const topRow = document.createElement('div');
+      topRow.className = 'flex flex-wrap items-center justify-between gap-2';
+
+      const emotionTitle = document.createElement('div');
+      emotionTitle.className = 'font-bold text-sm sm:text-base text-slate-900 group-hover:text-indigo-600 transition-colors truncate';
+      emotionTitle.textContent = `${orderNumber}. ${entry.emotion}`;
+
+      // Saat - Tarih rozeti
+      const dateTimeBadge = document.createElement('div');
+      dateTimeBadge.className = 'text-xs font-semibold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shrink-0';
+      dateTimeBadge.textContent = `${entry.timeStr} • ${entry.dateStr}`;
+
+      topRow.appendChild(emotionTitle);
+      topRow.appendChild(dateTimeBadge);
+
+      // Kategori etiketi
+      const catRow = document.createElement('div');
+      catRow.className = 'mt-1 flex items-center gap-2';
+      const catBadge = document.createElement('span');
+      catBadge.className = 'inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md text-white';
+      catBadge.style.backgroundColor = cat.color || '#6366f1';
+      catBadge.textContent = `${cat.emoji || ''} ${cat.name}`;
+      catRow.appendChild(catBadge);
+
+      // Açıklama özeti
+      const descP = document.createElement('p');
+      descP.className = 'mt-1.5 text-xs sm:text-sm text-slate-600 line-clamp-2 break-words';
+      descP.textContent = entry.description || 'Açıklama girilmemiş.';
+
+      contentBox.appendChild(topRow);
+      contentBox.appendChild(catRow);
+      contentBox.appendChild(descP);
+
+      itemBtn.appendChild(iconBox);
+      itemBtn.appendChild(contentBox);
+
+      // Tıklanınca ilgili "duygu sayfası"na gidilir
+      itemBtn.addEventListener('click', () => {
+        openEntryDetailPage(entry.id);
+      });
+
+      return itemBtn;
+    }
+
+    // ============================================================================
+    // YENİ DUYGU GİR & DUYGU SAYFASI İŞLEVLERİ
+    // ============================================================================
+    function populateCategorySelect() {
+      const selectEl = document.getElementById('entry-category-select');
+      selectEl.innerHTML = '';
+      const sortedCats = [...appData.categories].sort((a, b) => a.level - b.level);
+      sortedCats.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.id;
+        opt.textContent = `${cat.level}. ${cat.emoji || ''} ${cat.name}`;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    function renderIconSlotPreview() {
+      const previewEl = document.getElementById('icon-slot-preview');
+      previewEl.innerHTML = '';
+      if (currentFormState.iconType === 'image' && currentFormState.iconValue) {
+        const img = document.createElement('img');
+        img.src = currentFormState.iconValue;
+        img.alt = 'Seçilen simge fotoğrafı';
+        img.className = 'w-full h-full object-cover';
+        previewEl.appendChild(img);
+      } else {
+        previewEl.textContent = currentFormState.iconValue || '😊';
+      }
+    }
+
+    function openNewEntryPage() {
+      // Saat "Yeni duygu gir" butonuna tıklandığındaki saati gösterir. Herhangi bir değişiklik hakkı tanınmaz.
+      const now = new Date();
+      const dateStr = formatToTurkishDate(now);
+      const timeStr = formatToTurkishTime(now);
+      const formattedDateTime = `${dateStr} - ${timeStr}`;
+      const isoDate = formatToIsoDate(now);
+
+      formMode = 'new';
+      activeEntryId = null;
+      originalEntrySnapshot = null;
+
+      const defaultCat = appData.categories[appData.categories.length - 2] || appData.categories[0];
+
+      currentFormState = {
+        iconType: 'emoji',
+        iconValue: defaultCat ? defaultCat.emoji : '😊',
+        emotion: '',
+        dateStr,
+        timeStr,
+        formattedDateTime,
+        isoDate,
+        timestamp: now.getTime(),
+        categoryId: defaultCat ? defaultCat.id : 'cat_1',
+        description: ''
+      };
+
+      populateCategorySelect();
+
+      document.getElementById('entry-page-badge').textContent = 'Yeni Duygu Gir';
+      document.getElementById('entry-page-badge').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700';
+      document.getElementById('entry-status-hint').textContent = 'Butona tıkladığınız anın tarihi ve saati sabitlendi.';
+      document.getElementById('delete-entry-btn').classList.add('hidden');
+      document.getElementById('icon-picker-panel').classList.add('hidden');
+
+      document.getElementById('entry-emotion-input').value = '';
+      document.getElementById('entry-datetime-display').textContent = formattedDateTime;
+      document.getElementById('entry-category-select').value = currentFormState.categoryId;
+      document.getElementById('entry-description-textarea').value = '';
+      document.getElementById('description-char-count').textContent = '0 karakter';
+
+      renderIconSlotPreview();
+      updateSaveButtonState();
+      switchView('new');
+    }
+
+    function openEntryDetailPage(entryId) {
+      const found = appData.entries.find(e => e.id === entryId);
+      if (!found) return;
+
+      formMode = 'detail';
+      activeEntryId = found.id;
+      originalEntrySnapshot = JSON.parse(JSON.stringify(found));
+      currentFormState = JSON.parse(JSON.stringify(found));
+
+      populateCategorySelect();
+
+      document.getElementById('entry-page-badge').textContent = 'Duygu Sayfası';
+      document.getElementById('entry-page-badge').className = 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700';
+      document.getElementById('entry-status-hint').textContent = 'Değişiklik yapıldığında Kaydet butonu aktifleşir.';
+      document.getElementById('delete-entry-btn').classList.remove('hidden');
+      document.getElementById('icon-picker-panel').classList.add('hidden');
+
+      document.getElementById('entry-emotion-input').value = currentFormState.emotion;
+      document.getElementById('entry-datetime-display').textContent = `${currentFormState.dateStr} - ${currentFormState.timeStr}`;
+      document.getElementById('entry-category-select').value = currentFormState.categoryId;
+      document.getElementById('entry-description-textarea').value = currentFormState.description;
+      document.getElementById('description-char-count').textContent = `${(currentFormState.description || '').length} karakter`;
+
+      renderIconSlotPreview();
+      updateSaveButtonState();
+      switchView('detail');
+    }
+
+    function isDetailFormDirty() {
+      if (formMode !== 'detail' || !originalEntrySnapshot) return true;
+      return (
+        currentFormState.iconType !== originalEntrySnapshot.iconType ||
+        currentFormState.iconValue !== originalEntrySnapshot.iconValue ||
+        currentFormState.emotion.trim() !== originalEntrySnapshot.emotion.trim() ||
+        currentFormState.categoryId !== originalEntrySnapshot.categoryId ||
+        currentFormState.description.trim() !== originalEntrySnapshot.description.trim()
+      );
+    }
+
+    function updateSaveButtonState() {
+      const saveBtn = document.getElementById('save-entry-btn');
+      if (formMode === 'new') {
+        saveBtn.disabled = false;
+        saveBtn.className = 'w-full py-3.5 px-6 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white shadow-md cursor-pointer active:scale-[0.99]';
+        saveBtn.innerHTML = '<span>Kaydet</span>';
+      } else {
+        // Duygu sayfası: "bir değişiklik yapılmadığı sürece kaydet butonu aktif değildir, soluk renkli gözükür.
+        // Eğer sembolde, hissedilen duyguda, kategoride veya açıklamada bir değişiklik yapılırsa ekran altındaki kaydet butonu renklenir, aktifleşir"
+        const dirty = isDetailFormDirty();
+        if (dirty) {
+          saveBtn.disabled = false;
+          saveBtn.className = 'w-full py-3.5 px-6 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white shadow-md cursor-pointer active:scale-[0.99]';
+          saveBtn.innerHTML = '<span>Kaydet (Değişiklikleri Güncelle)</span>';
+          document.getElementById('entry-status-hint').textContent = 'Değişiklik algılandı — kaydetmeye hazır.';
+        } else {
+          saveBtn.disabled = true;
+          saveBtn.className = 'w-full py-3.5 px-6 rounded-xl font-bold text-base transition-all duration-200 flex items-center justify-center gap-2 bg-slate-200 text-slate-400 opacity-60 cursor-not-allowed';
+          saveBtn.innerHTML = '<span>Kaydet</span>';
+          document.getElementById('entry-status-hint').textContent = 'Değişiklik yapılmadığı sürece Kaydet butonu pasiftir.';
+        }
+      }
+    }
+
+    function handleSaveEntry() {
+      const emotionTrimmed = currentFormState.emotion.trim();
+      if (!emotionTrimmed) {
+        showToast('Lütfen hissedilen duyguyu yazın.', 'error');
+        document.getElementById('entry-emotion-input').focus();
+        return;
+      }
+
+      if (formMode === 'new') {
+        const newEntry = {
+          id: 'entry_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          iconType: currentFormState.iconType,
+          iconValue: currentFormState.iconValue,
+          emotion: emotionTrimmed,
+          dateStr: currentFormState.dateStr,
+          timeStr: currentFormState.timeStr,
+          formattedDateTime: currentFormState.formattedDateTime,
+          isoDate: currentFormState.isoDate,
+          timestamp: currentFormState.timestamp,
+          categoryId: currentFormState.categoryId,
+          description: currentFormState.description.trim()
+        };
+
+        appData.entries.push(newEntry);
+        saveAppData();
+
+        // "Butona basılınca duygu kaydedilmiş olur ve otomatik olarak kullanıcı anasayfaya atılır."
+        calendarYear = Number(newEntry.isoDate.split('-')[0]);
+        calendarMonth = Number(newEntry.isoDate.split('-')[1]) - 1;
+        selectedCalendarIsoDate = newEntry.isoDate;
+
+        showToast('Yeni duygu kaydedildi ve anasayfaya yönlendirildi.');
+        switchView('home');
+      } else if (formMode === 'detail' && activeEntryId) {
+        if (!isDetailFormDirty()) return;
+
+        const idx = appData.entries.findIndex(e => e.id === activeEntryId);
+        if (idx !== -1) {
+          appData.entries[idx] = {
+            ...appData.entries[idx],
+            iconType: currentFormState.iconType,
+            iconValue: currentFormState.iconValue,
+            emotion: emotionTrimmed,
+            categoryId: currentFormState.categoryId,
+            description: currentFormState.description.trim()
+          };
+          saveAppData();
+          originalEntrySnapshot = JSON.parse(JSON.stringify(appData.entries[idx]));
+          updateSaveButtonState();
+          showToast('Duygu sayfası başarıyla güncellendi.');
+        }
+      }
+    }
+
+    // Galeri fotoğrafını sıkıştırarak Base64 olarak okuma
+    function handleGalleryPhotoUpload(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const maxDim = 240;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            if (w > maxDim) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            }
+          } else {
+            if (h > maxDim) {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+          currentFormState.iconType = 'image';
+          currentFormState.iconValue = dataUrl;
+          renderIconSlotPreview();
+          updateSaveButtonState();
+          document.getElementById('icon-picker-panel').classList.add('hidden');
+          showToast('Galeriden fotoğraf simge boşluğuna eklendi.');
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ============================================================================
+    // GRAFİKLER SAYFASI (1. BÖLGE X-Y ÇİZGİ GRAFİĞİ)
+    // ============================================================================
+    function getFilteredEntriesForChart() {
+      let startMs = 0;
+      let endMs = Infinity;
+      let labelText = '';
+
+      if (chartMode === 'daily') {
+        const y = chartAnchorDate.getFullYear();
+        const m = chartAnchorDate.getMonth();
+        const d = chartAnchorDate.getDate();
+        startMs = new Date(y, m, d, 0, 0, 0, 0).getTime();
+        endMs = new Date(y, m, d, 23, 59, 59, 999).getTime();
+        labelText = `${formatToTurkishDate(chartAnchorDate)} (Günlük)`;
+      } else if (chartMode === 'weekly') {
+        // Seçili tarihin bulunduğu Pazartesi - Pazar haftası
+        const dayOfWeek = (chartAnchorDate.getDay() + 6) % 7;
+        const mon = new Date(chartAnchorDate);
+        mon.setDate(chartAnchorDate.getDate() - dayOfWeek);
+        mon.setHours(0, 0, 0, 0);
+
+        const sun = new Date(mon);
+        sun.setDate(mon.getDate() + 6);
+        sun.setHours(23, 59, 59, 999);
+
+        startMs = mon.getTime();
+        endMs = sun.getTime();
+        labelText = `${formatToTurkishDate(mon)} – ${formatToTurkishDate(sun)} (Haftalık)`;
+      } else if (chartMode === 'monthly') {
+        const y = chartAnchorDate.getFullYear();
+        const m = chartAnchorDate.getMonth();
+        const firstDay = new Date(y, m, 1, 0, 0, 0, 0);
+        const lastDay = new Date(y, m + 1, 0, 23, 59, 59, 999);
+        startMs = firstDay.getTime();
+        endMs = lastDay.getTime();
+        labelText = `${TURKISH_MONTHS[m]} ${y} (Aylık)`;
+      } else if (chartMode === 'custom') {
+        const [sy, sm, sd] = (chartCustomStartIso || '2026-10-01').split('-').map(Number);
+        const [ey, em, ed] = (chartCustomEndIso || '2026-10-31').split('-').map(Number);
+        const sDate = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
+        const eDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+        startMs = Math.min(sDate.getTime(), eDate.getTime());
+        endMs = Math.max(sDate.getTime(), eDate.getTime());
+        labelText = `${isoToTurkishDate(chartCustomStartIso)} – ${isoToTurkishDate(chartCustomEndIso)}`;
+      }
+
+      const filtered = appData.entries
+        .filter(e => e.timestamp >= startMs && e.timestamp <= endMs)
+        .sort((a, b) => a.timestamp - b.timestamp);
+
+      return { filtered, labelText };
+    }
+
+    function updateChartModeButtons() {
+      const modes = ['daily', 'weekly', 'monthly', 'custom'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`chart-mode-${m}`);
+        if (m === chartMode) {
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-white text-indigo-600 shadow-sm';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors text-slate-600 hover:text-slate-900';
+        }
+      });
+
+      const stdNav = document.getElementById('chart-standard-nav');
+      const customNav = document.getElementById('chart-custom-range-inputs');
+      if (chartMode === 'custom') {
+        stdNav.classList.add('hidden');
+        customNav.classList.remove('hidden');
+        customNav.classList.add('flex');
+      } else {
+        stdNav.classList.remove('hidden');
+        customNav.classList.add('hidden');
+        customNav.classList.remove('flex');
+      }
+    }
+
+    function renderChartsView() {
+      updateChartModeButtons();
+      const { filtered, labelText } = getFilteredEntriesForChart();
+
+      document.getElementById('chart-period-label').textContent = labelText;
+      document.getElementById('chart-point-count').textContent = filtered.length;
+
+      const emptyStateEl = document.getElementById('chart-empty-state');
+      if (filtered.length === 0) {
+        emptyStateEl.classList.remove('hidden');
+      } else {
+        emptyStateEl.classList.add('hidden');
+      }
+
+      const sortedCategories = [...appData.categories].sort((a, b) => a.level - b.level);
+      const maxLevel = sortedCategories.length > 0
+        ? Math.max(...sortedCategories.map(c => c.level))
+        : 8;
+
+      const levelToCategoryMap = {};
+      sortedCategories.forEach(c => {
+        levelToCategoryMap[c.level] = c;
+      });
+
+      const labels = filtered.map(entry => {
+        if (chartMode === 'daily') {
+          return `${entry.timeStr}`;
+        }
+        return `${entry.dateStr.slice(0, 5)} ${entry.timeStr}`;
+      });
+
+      const dataPoints = filtered.map(entry => {
+        const cat = getCategoryById(entry.categoryId);
+        return cat.level;
+      });
+
+      const pointColors = filtered.map(entry => {
+        const cat = getCategoryById(entry.categoryId);
+        return cat.color || '#4f46e5';
+      });
+
+      const ctx = document.getElementById('mood-line-chart').getContext('2d');
+      if (moodChartInstance) {
+        moodChartInstance.destroy();
+      }
+
+      moodChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Duygu Kategorisi',
+              data: dataPoints,
+              borderColor: '#4f46e5',
+              backgroundColor: 'rgba(79, 70, 229, 0.10)',
+              borderWidth: 3,
+              pointBackgroundColor: pointColors,
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              tension: 0.25,
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (elements && elements.length > 0) {
+              const index = elements[0].index;
+              const clickedEntry = filtered[index];
+              if (clickedEntry) {
+                openEntryDetailPage(clickedEntry.id);
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: '#0f172a',
+              titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+              bodyFont: { family: 'Inter', size: 12 },
+              padding: 12,
+              cornerRadius: 10,
+              callbacks: {
+                title: (items) => {
+                  const idx = items[0].dataIndex;
+                  const e = filtered[idx];
+                  return `${e.iconType === 'emoji' ? e.iconValue + ' ' : ''}${e.emotion}`;
+                },
+                label: (item) => {
+                  const idx = item.dataIndex;
+                  const e = filtered[idx];
+                  const cat = getCategoryById(e.categoryId);
+                  return [
+                    `Kategori (Y): ${cat.name} (Seviye ${cat.level})`,
+                    `Tarih (X): ${e.dateStr} - ${e.timeStr}`,
+                    e.description ? `Not: ${e.description.slice(0, 70)}${e.description.length > 70 ? '...' : ''}` : ''
+                  ].filter(Boolean);
+                }
+              }
+            }
+          },
+          scales: {
+            // 1. BÖLGE X EKSENİ: TARİH / SAAT
+            x: {
+              title: {
+                display: true,
+                text: 'X Ekseni: Tarih ve Saat',
+                color: '#334155',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              border: {
+                display: true,
+                color: '#0f172a',
+                width: 2
+              },
+              grid: {
+                color: '#f1f5f9'
+              },
+              ticks: {
+                color: '#475569',
+                font: { family: 'Inter', size: 11 }
+              }
+            },
+            // 1. BÖLGE Y EKSENİ: DUYGU KATEGORİSİ (0 başlangıçlı 1. bölge)
+            y: {
+              min: 0,
+              max: maxLevel + 1,
+              title: {
+                display: true,
+                text: 'Y Ekseni: Duygu Kategorisi',
+                color: '#334155',
+                font: { family: 'Inter', size: 12, weight: 'bold' }
+              },
+              border: {
+                display: true,
+                color: '#0f172a',
+                width: 2
+              },
+              grid: {
+                color: '#e2e8f0'
+              },
+              ticks: {
+                stepSize: 1,
+                color: '#1e293b',
+                font: { family: 'Inter', size: 11, weight: '600' },
+                callback: function(value) {
+                  if (value === 0) return '0 (Başlangıç)';
+                  const cat = levelToCategoryMap[value];
+                  return cat ? `${cat.emoji || ''} ${cat.name}` : '';
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // Grafik altındaki akış listesini güncelle
+      const listContainer = document.getElementById('chart-entries-list');
+      listContainer.innerHTML = '';
+      if (filtered.length === 0) {
+        const emptyP = document.createElement('p');
+        emptyP.className = 'text-xs text-slate-500 py-4 text-center';
+        emptyP.textContent = 'Bu tarih aralığında listelenecek duygu kaydı yok.';
+        listContainer.appendChild(emptyP);
+      } else {
+        filtered.forEach((entry, i) => {
+          listContainer.appendChild(createEntryListItemCard(entry, i + 1));
+        });
+      }
+    }
+
+    // ============================================================================
+    // KİŞİSELLEŞTİRME & KATEGORİ YÖNETİMİ MODALI
+    // ============================================================================
+    function renderSettingsCategories() {
+      const listEl = document.getElementById('settings-categories-list');
+      listEl.innerHTML = '';
+
+      const sorted = [...appData.categories].sort((a, b) => a.level - b.level);
+      sorted.forEach((cat, idx) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200';
+
+        const left = document.createElement('div');
+        left.className = 'flex items-center gap-2.5 min-w-0';
+
+        const badge = document.createElement('span');
+        badge.className = 'w-6 h-6 rounded-lg text-xs font-bold text-white flex items-center justify-center shrink-0';
+        badge.style.backgroundColor = cat.color || '#6366f1';
+        badge.textContent = cat.level;
+
+        const emojiSpan = document.createElement('span');
+        emojiSpan.className = 'text-lg';
+        emojiSpan.textContent = cat.emoji || '😊';
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = cat.name;
+        nameInput.className = 'text-xs sm:text-sm font-semibold text-slate-800 bg-white border border-slate-200 rounded-lg px-2.5 py-1 min-w-[140px]';
+        nameInput.addEventListener('change', () => {
+          const val = nameInput.value.trim();
+          if (val) {
+            cat.name = val;
+            saveAppData();
+            populateCategorySelect();
+            showToast('Kategori adı güncellendi.');
+          }
+        });
+
+        left.appendChild(badge);
+        left.appendChild(emojiSpan);
+        left.appendChild(nameInput);
+
+        const right = document.createElement('div');
+        right.className = 'flex items-center gap-1.5 shrink-0';
+
+        const colorPicker = document.createElement('input');
+        colorPicker.type = 'color';
+        colorPicker.value = cat.color || '#6366f1';
+        colorPicker.className = 'w-7 h-7 rounded cursor-pointer border border-slate-200 bg-white p-0.5';
+        colorPicker.addEventListener('change', () => {
+          cat.color = colorPicker.value;
+          badge.style.backgroundColor = cat.color;
+          saveAppData();
+        });
+
+        right.appendChild(colorPicker);
+
+        if (appData.categories.length > 2) {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'text-xs text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg font-semibold';
+          delBtn.textContent = 'Sil';
+          delBtn.addEventListener('click', () => {
+            appData.categories = appData.categories.filter(c => c.id !== cat.id);
+            // Level değerlerini 1..N yeniden numaralandır
+            appData.categories.forEach((c, i) => {
+              c.level = i + 1;
+            });
+            saveAppData();
+            renderSettingsCategories();
+            populateCategorySelect();
+            showToast('Kategori silindi.');
+          });
+          right.appendChild(delBtn);
+        }
+
+        row.appendChild(left);
+        row.appendChild(right);
+        listEl.appendChild(row);
+      });
+    }
+
+    // ============================================================================
+    // PWA MANIFEST VE SERVICE WORKER KURULUMU
+    // ============================================================================
+    function initPwaSupport() {
+      try {
+        const manifestObj = {
+          name: 'Mood Tracker — Kişisel Duygu Takip Uygulaması',
+          short_name: 'MoodTracker',
+          description: 'Gizlilik odaklı, takvim ve 1. bölge çizgi grafik destekli kişisel duygu takip PWA uygulaması.',
+          start_url: '.',
+          display: 'standalone',
+          background_color: '#f8fafc',
+          theme_color: '#4f46e5',
+          icons: [
+            {
+              src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%234f46e5"/><text x="50" y="68" font-size="54" text-anchor="middle">😊</text></svg>',
+              sizes: '192x192',
+              type: 'image/svg+xml'
+            }
+          ]
+        };
+        const manifestLink = document.getElementById('pwa-manifest-link');
+        if (manifestLink) {
+          manifestLink.setAttribute(
+            'href',
+            'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifestObj))
+          );
+        }
+      } catch (e) {
+        // Sandbox güvenliği
+      }
+    }
+
+    // ============================================================================
+    // OLAY DİNLEYİCİLERİ (EVENT LISTENERS) VE BAŞLATMA
+    // ============================================================================
+    function initEmojiGrid() {
+      const grid = document.getElementById('emoji-grid');
+      grid.innerHTML = '';
+      EMOJI_PALETTE.forEach(em => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'h-9 rounded-lg hover:bg-indigo-100 flex items-center justify-center text-xl transition-transform active:scale-90';
+        btn.textContent = em;
+        btn.addEventListener('click', () => {
+          currentFormState.iconType = 'emoji';
+          currentFormState.iconValue = em;
+          renderIconSlotPreview();
+          updateSaveButtonState();
+          document.getElementById('icon-picker-panel').classList.add('hidden');
+        });
+        grid.appendChild(btn);
+      });
+    }
+
+    function bindEvents() {
+      // Üst Şerit Butonları
+      document.getElementById('nav-home-btn').addEventListener('click', () => {
+        switchView('home');
+      });
+      document.getElementById('nav-charts-btn').addEventListener('click', () => {
+        switchView('charts');
+      });
+
+      // Anasayfa "Yeni duygu gir" Butonu
+      document.getElementById('go-new-entry-btn').addEventListener('click', () => {
+        openNewEntryPage();
+      });
+
+      // Takvim Gezinme Kontrolleri
+      document.getElementById('cal-prev-month-btn').addEventListener('click', () => {
+        calendarMonth--;
+        if (calendarMonth < 0) {
+          calendarMonth = 11;
+          calendarYear--;
+        }
+        renderCalendar();
+      });
+
+      document.getElementById('cal-next-month-btn').addEventListener('click', () => {
+        calendarMonth++;
+        if (calendarMonth > 11) {
+          calendarMonth = 0;
+          calendarYear++;
+        }
+        renderCalendar();
+      });
+
+      document.getElementById('cal-today-btn').addEventListener('click', () => {
+        const now = new Date();
+        calendarYear = now.getFullYear();
+        calendarMonth = now.getMonth();
+        selectedCalendarIsoDate = formatToIsoDate(now);
+        document.getElementById('cal-jump-date-input').value = selectedCalendarIsoDate;
+        renderCalendar();
+        renderSelectedDayEntries();
+      });
+
+      document.getElementById('cal-jump-date-input').addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (!val) return;
+        const [y, m] = val.split('-').map(Number);
+        calendarYear = y;
+        calendarMonth = m - 1;
+        selectedCalendarIsoDate = val;
+        renderCalendar();
+        renderSelectedDayEntries();
+      });
+
+      // Yeni Duygu Gir / Duygu Sayfası Kontrolleri
+      document.getElementById('icon-slot-btn').addEventListener('click', () => {
+        const panel = document.getElementById('icon-picker-panel');
+        panel.classList.toggle('hidden');
+      });
+
+      document.getElementById('close-icon-picker-btn').addEventListener('click', () => {
+        document.getElementById('icon-picker-panel').classList.add('hidden');
+      });
+
+      document.getElementById('apply-custom-emoji-btn').addEventListener('click', () => {
+        const val = document.getElementById('custom-emoji-input').value.trim();
+        if (val) {
+          currentFormState.iconType = 'emoji';
+          currentFormState.iconValue = val;
+          renderIconSlotPreview();
+          updateSaveButtonState();
+          document.getElementById('icon-picker-panel').classList.add('hidden');
+        }
+      });
+
+      document.getElementById('gallery-photo-input').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          handleGalleryPhotoUpload(file);
+        }
+      });
+
+      document.getElementById('entry-emotion-input').addEventListener('input', (e) => {
+        currentFormState.emotion = e.target.value;
+        updateSaveButtonState();
+      });
+
+      document.getElementById('entry-category-select').addEventListener('change', (e) => {
+        currentFormState.categoryId = e.target.value;
+        updateSaveButtonState();
+      });
+
+      document.getElementById('entry-description-textarea').addEventListener('input', (e) => {
+        currentFormState.description = e.target.value;
+        document.getElementById('description-char-count').textContent = `${e.target.value.length} karakter`;
+        updateSaveButtonState();
+      });
+
+      document.getElementById('save-entry-btn').addEventListener('click', () => {
+        handleSaveEntry();
+      });
+
+      document.getElementById('cancel-entry-btn').addEventListener('click', () => {
+        switchView('home');
+      });
+
+      document.getElementById('delete-entry-btn').addEventListener('click', () => {
+        if (!activeEntryId) return;
+        openConfirmModal(
+          'Duygu Girdisini Sil',
+          'Bu duygu kaydını kalıcı olarak silmek istediğinize emin misiniz?',
+          () => {
+            appData.entries = appData.entries.filter(e => e.id !== activeEntryId);
+            saveAppData();
+            closeConfirmModal();
+            showToast('Duygu kaydı silindi.', 'info');
+            switchView('home');
+          }
+        );
+      });
+
+      // Grafikler Sayfası Kontrolleri
+      document.getElementById('chart-mode-daily').addEventListener('click', () => {
+        chartMode = 'daily';
+        renderChartsView();
+      });
+      document.getElementById('chart-mode-weekly').addEventListener('click', () => {
+        chartMode = 'weekly';
+        renderChartsView();
+      });
+      document.getElementById('chart-mode-monthly').addEventListener('click', () => {
+        chartMode = 'monthly';
+        renderChartsView();
+      });
+      document.getElementById('chart-mode-custom').addEventListener('click', () => {
+        chartMode = 'custom';
+        document.getElementById('chart-start-date').value = chartCustomStartIso;
+        document.getElementById('chart-end-date').value = chartCustomEndIso;
+        renderChartsView();
+      });
+
+      document.getElementById('chart-prev-period-btn').addEventListener('click', () => {
+        if (chartMode === 'daily') {
+          chartAnchorDate.setDate(chartAnchorDate.getDate() - 1);
+        } else if (chartMode === 'weekly') {
+          chartAnchorDate.setDate(chartAnchorDate.getDate() - 7);
+        } else if (chartMode === 'monthly') {
+          chartAnchorDate.setMonth(chartAnchorDate.getMonth() - 1);
+        }
+        renderChartsView();
+      });
+
+      document.getElementById('chart-next-period-btn').addEventListener('click', () => {
+        if (chartMode === 'daily') {
+          chartAnchorDate.setDate(chartAnchorDate.getDate() + 1);
+        } else if (chartMode === 'weekly') {
+          chartAnchorDate.setDate(chartAnchorDate.getDate() + 7);
+        } else if (chartMode === 'monthly') {
+          chartAnchorDate.setMonth(chartAnchorDate.getMonth() + 1);
+        }
+        renderChartsView();
+      });
+
+      document.getElementById('chart-start-date').addEventListener('change', (e) => {
+        chartCustomStartIso = e.target.value;
+        renderChartsView();
+      });
+
+      document.getElementById('chart-end-date').addEventListener('change', (e) => {
+        chartCustomEndIso = e.target.value;
+        renderChartsView();
+      });
+
+      // Kişiselleştirme ve Veri Depolama Modalı
+      const openSettings = () => {
+        renderSettingsCategories();
+        updateStorageJsonPreview();
+        document.getElementById('settings-modal').classList.remove('hidden');
+      };
+
+      document.getElementById('open-settings-btn').addEventListener('click', openSettings);
+      document.getElementById('quick-manage-categories-btn').addEventListener('click', openSettings);
+
+      document.getElementById('close-settings-modal-btn').addEventListener('click', () => {
+        document.getElementById('settings-modal').classList.add('hidden');
+        if (currentView === 'charts') renderChartsView();
+      });
+
+      document.getElementById('add-category-btn').addEventListener('click', () => {
+        const nameInput = document.getElementById('new-cat-name');
+        const emojiInput = document.getElementById('new-cat-emoji');
+        const colorInput = document.getElementById('new-cat-color');
+
+        const name = nameInput.value.trim();
+        if (!name) {
+          showToast('Lütfen kategori adı girin.', 'error');
+          return;
+        }
+        const nextLevel = appData.categories.length + 1;
+        appData.categories.push({
+          id: 'cat_' + Date.now(),
+          level: nextLevel,
+          name,
+          emoji: emojiInput.value.trim() || '✨',
+          color: colorInput.value || '#6366f1'
+        });
+        nameInput.value = '';
+        saveAppData();
+        renderSettingsCategories();
+        populateCategorySelect();
+        showToast('Yeni duygu kategorisi eklendi.');
+      });
+
+      document.getElementById('export-json-btn').addEventListener('click', () => {
+        const dataStr = JSON.stringify(appData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mood-tracker-veriler-${formatToIsoDate(new Date())}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast('Veriler JSON formatında indirildi.');
+      });
+
+      document.getElementById('import-json-input').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const parsed = JSON.parse(evt.target.result);
+            if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.entries)) {
+              appData = parsed;
+              saveAppData();
+              renderSettingsCategories();
+              populateCategorySelect();
+              renderCalendar();
+              renderSelectedDayEntries();
+              if (currentView === 'charts') renderChartsView();
+              showToast('JSON veri dosyası başarıyla yüklendi.');
+            } else {
+              showToast('Geçersiz JSON veri formatı.', 'error');
+            }
+          } catch (err) {
+            showToast('JSON dosyası okunamadı.', 'error');
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById('load-sample-data-btn').addEventListener('click', () => {
+        appData.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+        appData.entries = createInitialSampleEntries();
+        saveAppData();
+        renderSettingsCategories();
+        populateCategorySelect();
+        renderCalendar();
+        renderSelectedDayEntries();
+        if (currentView === 'charts') renderChartsView();
+        showToast('Örnek duygu kayıtları yüklendi.');
+      });
+
+      document.getElementById('clear-all-data-btn').addEventListener('click', () => {
+        openConfirmModal(
+          'Tüm Kayıtları Sıfırla',
+          'Uygulama içindeki tüm duygu kayıtlarınız silinecek. Emin misiniz?',
+          () => {
+            appData.entries = [];
+            selectedCalendarIsoDate = null;
+            saveAppData();
+            closeConfirmModal();
+            renderCalendar();
+            renderSelectedDayEntries();
+            if (currentView === 'charts') renderChartsView();
+            showToast('Tüm duygu kayıtları temizlendi.', 'info');
+          }
+        );
+      });
+
+      // Onay Modalı Butonları
+      document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirmModal);
+      document.getElementById('confirm-accept-btn').addEventListener('click', () => {
+        if (typeof pendingConfirmAction === 'function') {
+          pendingConfirmAction();
+        }
+      });
+    }
+
+    // Başlangıç
+    window.addEventListener('DOMContentLoaded', () => {
+      initPwaSupport();
+
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      }
+
+      loadAppData();
+      initEmojiGrid();
+      populateCategorySelect();
+
+      // Başlangıçta takvim güncel tarihi (Ekim 2026) gösterir ancak hiçbir güne tıklanmamıştır
+      const now = new Date();
+      calendarYear = now.getFullYear();
+      calendarMonth = now.getMonth();
+      chartAnchorDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      selectedCalendarIsoDate = null; // Takvimin altı güne tıklanmadığı sürece boştur!
+
+      bindEvents();
+      renderCalendar();
+      renderSelectedDayEntries();
+    });
+  </script>
+</body>
+</html>

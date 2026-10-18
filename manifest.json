@@ -1,0 +1,17 @@
+{
+  "name": "Mood Tracker — Kişisel Duygu Takip Uygulaması",
+  "short_name": "MoodTracker",
+  "description": "Gizlilik odaklı, takvim ve 1. bölge çizgi grafik destekli kişisel duygu takip PWA uygulaması.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234f46e5'/><text x='50' y='68' font-size='54' text-anchor='middle'>😊</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
